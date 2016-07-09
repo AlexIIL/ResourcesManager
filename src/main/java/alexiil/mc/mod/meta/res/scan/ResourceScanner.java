@@ -7,13 +7,12 @@ import java.util.TreeMap;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.resources.ResourcePackRepository;
 import net.minecraft.client.resources.ResourcePackRepository.Entry;
 import net.minecraft.item.Item;
 import net.minecraft.util.ResourceLocation;
 
-import alexiil.mc.mod.meta.res.scan.AllBlockModels.BlockModels;
+import alexiil.mc.mod.meta.res.scan.AllBlockModels.SingleStateModels;
 import alexiil.mc.mod.meta.res.scan.AllItemModels.ItemModels;
 
 public enum ResourceScanner {
@@ -44,9 +43,9 @@ public enum ResourceScanner {
         scanItemModels();
     }
 
-    private void scanTextures() {
-        TextureMap textures = Minecraft.getMinecraft().getTextureMapBlocks();
-        // TODO!
+    private static void scanTextures() {
+        // TextureMap textures = Minecraft.getMinecraft().getTextureMapBlocks();
+        // TODO?
     }
 
     public void scanLocation(ResourceLocation location) {
@@ -66,7 +65,7 @@ public enum ResourceScanner {
 
     private static void scanBlockModels() {
         for (Block b : Block.REGISTRY) {
-            AllBlockModels.blocks.put(b, new BlockModels(b));
+            AllBlockModels.blocks.put(b, new SingleStateModels(b));
         }
     }
 

@@ -1,0 +1,89 @@
+package alexiil.mc.mod.meta.res.gui;
+
+import java.util.List;
+import java.util.function.Consumer;
+
+public class GuiSelectable<S extends GuiDrawable> {
+    public final int x, width;
+    public final Consumer<S> onSelect;
+
+    private List<S> possible;
+    private boolean mouseInWhole = false;
+    private int selected = -1, mouseOver = -1;
+    private float scrollPos;
+    private int maxY = -1;
+
+    public GuiSelectable(int x, int width, Consumer<S> onSelect) {
+        this.x = x;
+        this.width = width;
+        this.onSelect = onSelect;
+    }
+
+    public void setList(List<S> possible) {
+        this.possible = possible;
+        selected = -1;
+        scrollPos = 0;
+    }
+
+    public boolean isSelected() {
+        return selected >= 0;
+    }
+
+    public S getSelected() {
+        return isSelected() ? possible.get(selected) : null;
+    }
+
+    public void tick() {
+        if (scrollPos > 0) {
+            scrollPos -= (scrollPos / 10) + 1;
+            if (scrollPos < 0) {
+                scrollPos = 0;
+            }
+        }
+        if (maxY < 42) {
+            scrollPos += (-(maxY - 42) / 10) + 1;
+        }
+    }
+
+    public void draw(int mouseX, int mouseY) {
+        int xPos = x + 3;
+        int y = 30 + (int) scrollPos;
+        int i = 0;
+        mouseOver = -1;
+        mouseInWhole = mouseX > x && mouseX < x + width;
+        if (possible == null) {
+            return;
+        }
+        for (S drawable : possible) {
+            int height = drawable.draw(xPos, y);
+            if (selected == i) {
+                GuiUtil.drawSelectionBox(x, y - 3, width, height + 6);
+            }
+            if (mouseX > x && mouseX <= x + width && mouseY > y && mouseY < y + height + 6) {
+                mouseOver = i;
+                GuiUtil.drawHoverBox(x, y - 3, width, height + 6);
+            }
+            y += height + 6;
+            i++;
+        }
+        maxY = y;
+    }
+
+    public void onClick() {
+
+    }
+
+    public void onDrag() {
+
+    }
+
+    public void onRelease() {
+        selected = mouseOver;
+    }
+
+    public void onScroll(float by) {
+        if (mouseInWhole) {
+            scrollPos += by;
+        }
+    }
+}

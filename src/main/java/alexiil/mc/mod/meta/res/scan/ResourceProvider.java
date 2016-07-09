@@ -11,7 +11,7 @@ public class ResourceProvider {
     private final IResourcePack pack;
 
     public ResourceProvider(IResourcePack pack) {
-        this.name = "Minecraft";
+        this.name = "Default";
         this.entry = null;
         this.pack = pack;
     }

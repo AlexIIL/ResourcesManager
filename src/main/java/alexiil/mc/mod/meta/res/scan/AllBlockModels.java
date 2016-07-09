@@ -1,17 +1,23 @@
 package alexiil.mc.mod.meta.res.scan;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.NavigableMap;
+import java.util.TreeMap;
 
 import net.minecraft.block.Block;
 
-public class AllBlockModels {
-    public static final Map<Block, BlockModels> blocks = new HashMap<>();
+public enum AllBlockModels {
+    INSTANCE;
 
-    public static class BlockModels {
+    public static final NavigableMap<Block, SingleStateModels> blocks = new TreeMap<>(INSTANCE::compare);
+
+    private int compare(Block a, Block b) {
+        return a.getRegistryName().toString().compareTo(b.getRegistryName().toString());
+    }
+
+    public static class SingleStateModels {
         public final Block block;
 
-        public BlockModels(Block block) {
+        public SingleStateModels(Block block) {
             this.block = block;
         }
     }
