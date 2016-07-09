@@ -3,9 +3,12 @@ package alexiil.mc.mod.meta.res.gui;
 import java.util.List;
 import java.util.function.Consumer;
 
+import net.minecraft.client.gui.GuiScreen;
+
 public class GuiSelectable<S extends GuiDrawable> {
     public final int x, width;
     public final Consumer<S> onSelect;
+    private final GuiScreen gui;
 
     private List<S> possible;
     private boolean mouseInWhole = false;
@@ -13,7 +16,8 @@ public class GuiSelectable<S extends GuiDrawable> {
     private float scrollPos;
     private int maxY = -1;
 
-    public GuiSelectable(int x, int width, Consumer<S> onSelect) {
+    public GuiSelectable(GuiScreen gui, int x, int width, Consumer<S> onSelect) {
+        this.gui = gui;
         this.x = x;
         this.width = width;
         this.onSelect = onSelect;
@@ -40,8 +44,11 @@ public class GuiSelectable<S extends GuiDrawable> {
                 scrollPos = 0;
             }
         }
-        if (maxY < 42) {
-            scrollPos += (-(maxY - 42) / 10) + 1;
+        if (maxY < gui.height && scrollPos < 0) {
+            scrollPos += (-scrollPos / 10) + 1;
+            if (scrollPos > 0) {
+                scrollPos = 0;
+            }
         }
     }
 
@@ -54,6 +61,11 @@ public class GuiSelectable<S extends GuiDrawable> {
         if (possible == null) {
             return;
         }
+
+        gui.mc.fontRendererObj.drawString("" + maxY, 0, xPos, -1);
+        gui.mc.fontRendererObj.drawString("" + ((int) scrollPos), 0, xPos + 12, -1);
+        gui.mc.fontRendererObj.drawString("" + gui.height, 0, xPos + 24, -1);
+
         for (S drawable : possible) {
             int height = drawable.draw(xPos, y);
             if (selected == i) {

@@ -84,9 +84,9 @@ public class GuiResourcesMain extends GuiScreen {
     }
 
     public GuiResourcesMain() {
-        selectMod = new GuiSelectable<>(30, 100, this::onSelectMod);
-        selectType = new GuiSelectable<>(140, 100, this::onSelectType);
-        selectThing = new GuiSelectable<>(250, 100, this::onSelectThing);
+        selectMod = new GuiSelectable<>(this, 30, 100, this::onSelectMod);
+        selectType = new GuiSelectable<>(this, 140, 100, this::onSelectType);
+        selectThing = new GuiSelectable<>(this, 250, 100, this::onSelectThing);
         initDomains();
     }
 
@@ -121,7 +121,7 @@ public class GuiResourcesMain extends GuiScreen {
         selectMod.tick();
         selectType.tick();
         selectThing.tick();
-//        selectThing.setList(blocks.values().iterator().next());
+//        selectThing.setList(blocks.values().stream().filter((v) -> v.size() > 10).findAny().get());
     }
 
     @Override
@@ -130,7 +130,7 @@ public class GuiResourcesMain extends GuiScreen {
         super.drawScreen(mouseX, mouseY, partialTicks);
 
         selectMod.draw(mouseX, mouseY);
-        if (selectMod.isSelected()||true) {
+        if (selectMod.isSelected() || true) {
             selectType.draw(mouseX, mouseY);
             if (selectType.isSelected() || true) {
                 selectThing.draw(mouseX, mouseY);
@@ -147,7 +147,6 @@ public class GuiResourcesMain extends GuiScreen {
         tryScroll(mouseX, scroll, selectMod);
         tryScroll(mouseX, scroll, selectType);
         tryScroll(mouseX, scroll, selectThing);
-
     }
 
     private static void tryScroll(int mouseX, float scroll, GuiSelectable<GuiString> selected) {
@@ -156,31 +155,18 @@ public class GuiResourcesMain extends GuiScreen {
         }
     }
 
-    // @Override
-    // protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
-    // // TODO Auto-generated method stub
-    // throw new AbstractMethodError("Implement this!");
-    // super.mouseClicked(mouseX, mouseY, mouseButton);
-    // }
-    //
-    // @Override
-    // protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
-    // // TODO Auto-generated method stub
-    // throw new AbstractMethodError("Implement this!");
-    // super.mouseClickMove(mouseX, mouseY, clickedMouseButton, timeSinceLastClick);
-    // }
-    //
-    // @Override
-    // protected void mouseReleased(int mouseX, int mouseY, int state) {
-    // // TODO Auto-generated method stub
-    // throw new AbstractMethodError("Implement this!");
-    // super.mouseReleased(mouseX, mouseY, state);
-    // }
-    //
-    // @Override
-    // protected void keyTyped(char typedChar, int keyCode) throws IOException {
-    // // TODO Auto-generated method stub
-    // throw new AbstractMethodError("Implement this!");
-    // super.keyTyped(typedChar, keyCode);
-    // }
+    @Override
+    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
+        super.mouseClicked(mouseX, mouseY, mouseButton);
+    }
+
+    @Override
+    protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
+        super.mouseClickMove(mouseX, mouseY, clickedMouseButton, timeSinceLastClick);
+    }
+
+    @Override
+    protected void mouseReleased(int mouseX, int mouseY, int state) {
+        super.mouseReleased(mouseX, mouseY, state);
+    }
 }
