@@ -1,14 +1,14 @@
 [
 {
-  "modid": "examplemod",
-  "name": "Example Mod",
-  "description": "Example placeholder mod.",
+  "modid":"resourcemanager",
+  "name": "Resource Manger",
+  "description": "In game resource manager, model maker, blockstate stitcher",
   "version": "${version}",
   "mcversion": "${mcversion}",
   "url": "",
   "updateUrl": "",
-  "authorList": ["ExampleDude"],
-  "credits": "The Forge and FML guys, for making this example",
+  "authorList": ["AlexIIL"],
+  "credits": "No-one :(",
   "logoFile": "",
   "screenshots": [],
   "dependencies": []

@@ -24,6 +24,9 @@ version = "0.1"
 group= "alexiil.mc.mod.meta.res" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = "ResourcesManager"
 
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
+
 minecraft {
     version = "1.10.2-12.18.0.2008"
     runDir = "run"
