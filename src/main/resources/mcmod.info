@@ -2,7 +2,7 @@
 {
   "modid":"resourcemanager",
   "name": "Resource Manger",
-  "description": "In game resource manager, model maker, blockstate stitcher",
+  "description": "In game resource (textures, models) manager, provides a blockstate aware model editor.",
   "version": "${version}",
   "mcversion": "${mcversion}",
   "url": "",
