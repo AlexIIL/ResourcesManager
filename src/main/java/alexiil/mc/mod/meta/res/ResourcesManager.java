@@ -56,5 +56,4 @@ public class ResourcesManager {
             return false;
         }
     }
-
 }
