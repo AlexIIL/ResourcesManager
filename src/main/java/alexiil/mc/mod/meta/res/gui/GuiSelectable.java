@@ -1,13 +1,13 @@
 package alexiil.mc.mod.meta.res.gui;
 
 import java.util.List;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 import net.minecraft.client.gui.GuiScreen;
 
 public class GuiSelectable<S extends GuiDrawable> {
-    public final int x, width;
-    public final Consumer<S> onSelect;
+    public int x, width;
+    public final BiConsumer<GuiSelectable<S>, S> onSelect;
     private final GuiScreen gui;
 
     private List<S> possible;
@@ -16,7 +16,7 @@ public class GuiSelectable<S extends GuiDrawable> {
     private float scrollPos;
     private int maxY = -1;
 
-    public GuiSelectable(GuiScreen gui, int x, int width, Consumer<S> onSelect) {
+    public GuiSelectable(GuiScreen gui, int x, int width, BiConsumer<GuiSelectable<S>, S> onSelect) {
         this.gui = gui;
         this.x = x;
         this.width = width;
@@ -27,6 +27,12 @@ public class GuiSelectable<S extends GuiDrawable> {
         this.possible = possible;
         selected = -1;
         scrollPos = 0;
+        width = 30;
+        if (possible != null) {
+            for (S element : possible) {
+                width = Math.max(width, element.getWidth() + 6);
+            }
+        }
     }
 
     public boolean isSelected() {
@@ -82,7 +88,8 @@ public class GuiSelectable<S extends GuiDrawable> {
     }
 
     public void onClick() {
-
+        selected = mouseOver;
+        onSelect.accept(this, getSelected());
     }
 
     public void onDrag() {
@@ -90,7 +97,7 @@ public class GuiSelectable<S extends GuiDrawable> {
     }
 
     public void onRelease() {
-        selected = mouseOver;
+
     }
 
     public void onScroll(float by) {

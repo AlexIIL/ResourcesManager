@@ -2,112 +2,149 @@ package alexiil.mc.mod.meta.res.gui;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.Map.Entry;
 
 import org.lwjgl.input.Mouse;
 
-import net.minecraft.block.Block;
 import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
-import alexiil.mc.mod.meta.res.scan.AllBlockModels;
-import alexiil.mc.mod.meta.res.scan.AllItemModels;
+import alexiil.mc.mod.meta.res.scan.ResourceProvider;
 import alexiil.mc.mod.meta.res.scan.ResourceScanner;
 
 public class GuiResourcesMain extends GuiScreen {
-    private final GuiSelectable<GuiString> selectMod;
-    private final GuiSelectable<GuiString> selectType;
-    private final GuiSelectable<GuiString> selectThing;
+    private static int levels = 1;
+    private final List<GuiSelectable<GuiString>> shownFolders = new ArrayList<>();
+    private final ResFolder rootFolder = new ResFolder();
 
-    private final GuiString typeBlocks = new GuiString("Blocks");
-    private final GuiString typeItems = new GuiString("Items");
-    private final GuiString typeTextures = new GuiString("Textures");
+    public static class ResFolder {
+        public final ResFolder parent;
+        public final GuiString guiElement;
+        public final Map<String, ResFolder> folders = new TreeMap<>();
+        public final Map<String, ResFile> files = new TreeMap<>();
+        public final List<GuiString> guiElements = new ArrayList<>();
 
-    // Map of mod -> things
-    private final Map<GuiString, List<GuiString>> blocks = new HashMap<>();
-    private final Map<GuiString, List<GuiString>> items = new HashMap<>();
-    private final Map<GuiString, List<GuiString>> textures = new HashMap<>();
-
-    private void initDomains() {
-        ResourceScanner.INSTANCE.scan();
-        List<GuiString> types = new ArrayList<>();
-        types.add(typeBlocks);
-        types.add(typeItems);
-        types.add(typeTextures);
-        Collections.sort(types);
-        selectType.setList(types);
-
-        List<GuiString> guiMods = new ArrayList<>();
-        selectMod.setList(guiMods);
-        List<String> mods = new ArrayList<>();
-
-        for (Block b : AllBlockModels.blocks.descendingKeySet()) {
-            ResourceLocation loc = b.getRegistryName();
-            final GuiString mod;
-            if (!mods.contains(loc.getResourceDomain())) {
-                mods.add(loc.getResourceDomain());
-                guiMods.add(mod = new GuiString(loc.getResourceDomain()));
-            } else {
-                mod = guiMods.get(mods.indexOf(loc.getResourceDomain()));
-            }
-            if (!blocks.containsKey(mod)) {
-                blocks.put(mod, new ArrayList<>());
-            }
-            blocks.get(mod).add(new GuiString(b.getLocalizedName()));
+        public ResFolder() {
+            parent = null;
+            guiElement = new GuiString("", "");
         }
 
-        for (List<GuiString> list : blocks.values()) {
-            Collections.sort(list);
+        public ResFolder(ResFolder parent, String name) {
+            this.parent = parent;
+            guiElement = new GuiString(name + "/", parent.guiElement.id + name + "/");
         }
 
-        for (Item i : AllItemModels.items.descendingKeySet()) {
-            ResourceLocation loc = i.getRegistryName();
-            final GuiString mod;
-            if (!mods.contains(loc.getResourceDomain())) {
-                mods.add(loc.getResourceDomain());
-                guiMods.add(mod = new GuiString(loc.getResourceDomain()));
-            } else {
-                mod = guiMods.get(mods.indexOf(loc.getResourceDomain()));
+        public void genGuiElements(String parent) {
+            guiElements.clear();
+
+            for (ResFolder f : folders.values()) {
+                guiElements.add(f.guiElement);
+                f.genGuiElements(guiElement.id);
             }
-            if (!items.containsKey(mod)) {
-                items.put(mod, new ArrayList<>());
+            for (ResFile file : files.values()) {
+                guiElements.add(new GuiString(file.name + "  " + Arrays.toString(file.providers), parent + file.name));
             }
-            items.get(mod).add(new GuiString(new ItemStack(i).getDisplayName()));
         }
 
-        for (List<GuiString> list : items.values()) {
-            Collections.sort(list);
+        public void reset() {
+            folders.clear();
+            files.clear();
+            guiElements.clear();
         }
 
-        Collections.sort(mods);
+        public List<GuiString> getChildFolder(String id) {
+            ResFolder current = this;
+            String[] split = id.split("/");
+            for (int i = 0; i < split.length; i++) {
+                current = current.folders.get(split[i]);
+                if (current == null) {
+                    List<GuiString> list = new ArrayList<>();
+                    list.add(new GuiString("null path!"));
+                    return list;
+                }
+            }
+            return current.guiElements;
+        }
+    }
+
+    public static class ResFile {
+        public final ResFolder parent;
+        public final String name;
+        public final ResourceLocation location;
+        public final ResourceProvider[] providers;
+
+        public ResFile(ResFolder parent, String name, ResourceLocation location, ResourceProvider[] providers) {
+            this.parent = parent;
+            this.name = name;
+            this.location = location;
+            this.providers = providers;
+        }
+    }
+
+    public void addFile(ResourceLocation location, ResourceProvider[] providers) {
+        String[] loc = toPath(location);
+        ResFolder current = rootFolder;
+        for (int i = 0; i + 1 < loc.length; i++) {
+            String s = loc[i];
+            if (!current.folders.containsKey(s)) {
+                current.folders.put(s, new ResFolder(current, s));
+            }
+            current = current.folders.get(s);
+            levels = Math.max(levels, i);
+        }
+        String file = loc[loc.length - 1];
+        current.files.put(file, new ResFile(current, file, location, providers));
     }
 
     public GuiResourcesMain() {
-        selectMod = new GuiSelectable<>(this, 30, 100, this::onSelectMod);
-        selectType = new GuiSelectable<>(this, 140, 100, this::onSelectType);
-        selectThing = new GuiSelectable<>(this, 250, 100, this::onSelectThing);
         initDomains();
     }
 
-    private void onSelectMod(GuiString mod) {
-        if (selectType.isSelected()) {
-            onSelectType(selectType.getSelected());
+    private void initDomains() {
+        shownFolders.clear();
+        rootFolder.reset();
+
+        ResourceScanner.INSTANCE.scan();
+        shownFolders.add(new GuiSelectable<>(this, 30, 60, this::onSelectFolderOrFile));
+
+        for (Entry<ResourceLocation, List<ResourceProvider>> entry : ResourceScanner.INSTANCE.resources.entrySet()) {
+            ResourceLocation loc = entry.getKey();
+            addFile(loc, entry.getValue().toArray(new ResourceProvider[entry.getValue().size()]));
+        }
+        rootFolder.genGuiElements("");
+        shownFolders.get(0).setList(rootFolder.guiElements);
+
+        for (int i = 1; i <= levels; i++) {
+            shownFolders.add(new GuiSelectable<>(this, 30, 30 + i * 60, this::onSelectFolderOrFile));
         }
     }
 
-    private void onSelectType(GuiString type) {
-        if (type == typeBlocks) {
-            selectThing.setList(blocks.get(selectMod.getSelected()));
-        } else if (type == typeItems) {
-            selectThing.setList(items.get(selectMod.getSelected()));
+    private static String[] toPath(ResourceLocation loc) {
+        String full = loc.getResourceDomain() + "/" + loc.getResourcePath();
+        return full.split("/");
+    }
+
+    private void onSelectFolderOrFile(GuiSelectable<GuiString> selector, GuiString selected) {
+        if (selected == null) {
+            return;
+        }
+        if (selected.text.endsWith("/")) {
+            // Its a folder
+            int totalWidth = 30;
+            for (GuiSelectable<?> select : shownFolders) {
+                select.x = totalWidth;
+                totalWidth += select.width + 30;
+            }
+            int index = shownFolders.indexOf(selector);
+            GuiSelectable<GuiString> childGuiElement = shownFolders.get(index + 1);
+            List<GuiString> children = rootFolder.getChildFolder(selected.id);
+            childGuiElement.setList(children);
+            for (int i = index + 2; i < shownFolders.size(); i++) {
+                shownFolders.get(i).setList(null);
+            }
         } else {
-            selectThing.setList(null);
+            // Its a file
         }
-    }
-
-    private void onSelectThing(GuiString thing) {
-
     }
 
     @Override
@@ -118,10 +155,9 @@ public class GuiResourcesMain extends GuiScreen {
     @Override
     public void updateScreen() {
         super.updateScreen();
-        selectMod.tick();
-        selectType.tick();
-        selectThing.tick();
-//        selectThing.setList(blocks.values().stream().filter((v) -> v.size() > 10).findAny().get());
+        for (GuiSelectable<GuiString> shown : shownFolders) {
+            shown.tick();
+        }
     }
 
     @Override
@@ -129,11 +165,10 @@ public class GuiResourcesMain extends GuiScreen {
         drawBackground(0);
         super.drawScreen(mouseX, mouseY, partialTicks);
 
-        selectMod.draw(mouseX, mouseY);
-        if (selectMod.isSelected() || true) {
-            selectType.draw(mouseX, mouseY);
-            if (selectType.isSelected() || true) {
-                selectThing.draw(mouseX, mouseY);
+        for (GuiSelectable<GuiString> shown : shownFolders) {
+            shown.draw(mouseX, mouseY);
+            if (!shown.isSelected()) {
+                break;
             }
         }
     }
@@ -144,9 +179,13 @@ public class GuiResourcesMain extends GuiScreen {
         super.handleMouseInput();
         float scroll = Mouse.getEventDWheel();
         scroll /= 4.0F;
-        tryScroll(mouseX, scroll, selectMod);
-        tryScroll(mouseX, scroll, selectType);
-        tryScroll(mouseX, scroll, selectThing);
+
+        for (GuiSelectable<GuiString> shown : shownFolders) {
+            tryScroll(mouseX, scroll, shown);
+            if (!shown.isSelected()) {
+                break;
+            }
+        }
     }
 
     private static void tryScroll(int mouseX, float scroll, GuiSelectable<GuiString> selected) {
@@ -158,6 +197,18 @@ public class GuiResourcesMain extends GuiScreen {
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
         super.mouseClicked(mouseX, mouseY, mouseButton);
+        for (GuiSelectable<GuiString> shown : shownFolders) {
+            tryMouseClick(mouseX, shown);
+            if (!shown.isSelected()) {
+                break;
+            }
+        }
+    }
+
+    private void tryMouseClick(int mouseX, GuiSelectable<GuiString> selected) {
+        if (mouseX > selected.x && mouseX <= selected.x + selected.width) {
+            selected.onClick();
+        }
     }
 
     @Override
@@ -168,5 +219,17 @@ public class GuiResourcesMain extends GuiScreen {
     @Override
     protected void mouseReleased(int mouseX, int mouseY, int state) {
         super.mouseReleased(mouseX, mouseY, state);
+        for (GuiSelectable<GuiString> shown : shownFolders) {
+            tryMouseRelease(mouseX, shown);
+            if (!shown.isSelected()) {
+                break;
+            }
+        }
+    }
+
+    private void tryMouseRelease(int mouseX, GuiSelectable<GuiString> selected) {
+        if (mouseX > selected.x && mouseX <= selected.x + selected.width) {
+            selected.onRelease();
+        }
     }
 }
