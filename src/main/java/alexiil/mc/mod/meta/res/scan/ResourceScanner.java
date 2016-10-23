@@ -4,6 +4,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -11,7 +12,6 @@ import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.IResourcePack;
 import net.minecraft.client.resources.ResourcePackRepository;
-import net.minecraft.client.resources.ResourcePackRepository.Entry;
 import net.minecraft.item.Item;
 import net.minecraft.util.ResourceLocation;
 
@@ -21,6 +21,7 @@ import alexiil.mc.mod.meta.res.scan.AllItemModels.ItemModels;
 public enum ResourceScanner {
     INSTANCE;
 
+    public final ResFolder rootFolder = new ResFolder();
     public final List<ResourceProvider> providers = new ArrayList<>();
 
     public final SortedMap<ResourceLocation, List<ResourceProvider>> resources = new TreeMap<>((a, b) -> a.toString().compareTo(b.toString()));
@@ -28,10 +29,11 @@ public enum ResourceScanner {
     public void scan() {
         resources.clear();
         providers.clear();
+        rootFolder.reset();
 
         ResourcePackRepository repo = Minecraft.getMinecraft().getResourcePackRepository();
-        for (Entry entry : repo.getRepositoryEntries()) {
-            providers.add(new ResourceProvider(entry));
+        for (ResourcePackRepository.Entry entry : repo.getRepositoryEntries()) {
+            providers.add(new ResourceProvider(entry.getResourcePack()));
         }
         List<IResourcePack> packs = getOnlyList();
         for (IResourcePack pack : packs) {
@@ -48,6 +50,11 @@ public enum ResourceScanner {
                 }
                 list.add(provider);
             }
+        }
+
+        for (Entry<ResourceLocation, List<ResourceProvider>> entry : resources.entrySet()) {
+            ResourceLocation loc = entry.getKey();
+            rootFolder.addFile(loc, entry.getValue().toArray(new ResourceProvider[entry.getValue().size()]));
         }
 
         scanTextures();

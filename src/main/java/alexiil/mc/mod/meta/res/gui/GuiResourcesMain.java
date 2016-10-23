@@ -1,149 +1,57 @@
 package alexiil.mc.mod.meta.res.gui;
 
+import java.awt.Rectangle;
 import java.io.IOException;
-import java.util.*;
-import java.util.Map.Entry;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.lwjgl.input.Mouse;
+import org.lwjgl.opengl.GL11;
 
 import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.util.ResourceLocation;
 
-import alexiil.mc.mod.meta.res.scan.ResourceProvider;
+import alexiil.mc.mod.meta.res.scan.ResFile;
 import alexiil.mc.mod.meta.res.scan.ResourceScanner;
 
 public class GuiResourcesMain extends GuiScreen {
-    private static int levels = 1;
-    private final List<GuiSelectable<GuiString>> shownFolders = new ArrayList<>();
-    private final ResFolder rootFolder = new ResFolder();
+    public final GuiPanelFolderStructure panelFolders = new GuiPanelFolderStructure(this);
+    private ResFile openFile = null;
+    private GuiPanelFileInfo panelFileInfo = null;
 
-    public static class ResFolder {
-        public final ResFolder parent;
-        public final GuiString guiElement;
-        public final Map<String, ResFolder> folders = new TreeMap<>();
-        public final Map<String, ResFile> files = new TreeMap<>();
-        public final List<GuiString> guiElements = new ArrayList<>();
+    private final List<PanelHolder> holders = new ArrayList<>();
+    private float scrollX = 0;
+    private int totalWidth;
 
-        public ResFolder() {
-            parent = null;
-            guiElement = new GuiString("", "");
-        }
-
-        public ResFolder(ResFolder parent, String name) {
-            this.parent = parent;
-            guiElement = new GuiString(name + "/", parent.guiElement.id + name + "/");
-        }
-
-        public void genGuiElements(String parent) {
-            guiElements.clear();
-
-            for (ResFolder f : folders.values()) {
-                guiElements.add(f.guiElement);
-                f.genGuiElements(guiElement.id);
-            }
-            for (ResFile file : files.values()) {
-                guiElements.add(new GuiString(file.name + "  " + Arrays.toString(file.providers), parent + file.name));
-            }
-        }
-
-        public void reset() {
-            folders.clear();
-            files.clear();
-            guiElements.clear();
-        }
-
-        public List<GuiString> getChildFolder(String id) {
-            ResFolder current = this;
-            String[] split = id.split("/");
-            for (int i = 0; i < split.length; i++) {
-                current = current.folders.get(split[i]);
-                if (current == null) {
-                    List<GuiString> list = new ArrayList<>();
-                    list.add(new GuiString("null path!"));
-                    return list;
-                }
-            }
-            return current.guiElements;
-        }
-    }
-
-    public static class ResFile {
-        public final ResFolder parent;
-        public final String name;
-        public final ResourceLocation location;
-        public final ResourceProvider[] providers;
-
-        public ResFile(ResFolder parent, String name, ResourceLocation location, ResourceProvider[] providers) {
-            this.parent = parent;
-            this.name = name;
-            this.location = location;
-            this.providers = providers;
-        }
-    }
-
-    public void addFile(ResourceLocation location, ResourceProvider[] providers) {
-        String[] loc = toPath(location);
-        ResFolder current = rootFolder;
-        for (int i = 0; i + 1 < loc.length; i++) {
-            String s = loc[i];
-            if (!current.folders.containsKey(s)) {
-                current.folders.put(s, new ResFolder(current, s));
-            }
-            current = current.folders.get(s);
-            levels = Math.max(levels, i);
-        }
-        String file = loc[loc.length - 1];
-        current.files.put(file, new ResFile(current, file, location, providers));
-    }
+    /* TODO: Add a side panel (on the right) with viewing/forking info about a selected file */
+    // Still needed :)
 
     public GuiResourcesMain() {
-        initDomains();
+        holders.add(new PanelHolder(panelFolders));
+        refreshFolders();
     }
 
-    private void initDomains() {
-        shownFolders.clear();
-        rootFolder.reset();
+    private void refreshFolders() {
+        panelFileInfo = null;
 
         ResourceScanner.INSTANCE.scan();
-        shownFolders.add(new GuiSelectable<>(this, 30, 60, this::onSelectFolderOrFile));
-
-        for (Entry<ResourceLocation, List<ResourceProvider>> entry : ResourceScanner.INSTANCE.resources.entrySet()) {
-            ResourceLocation loc = entry.getKey();
-            addFile(loc, entry.getValue().toArray(new ResourceProvider[entry.getValue().size()]));
-        }
-        rootFolder.genGuiElements("");
-        shownFolders.get(0).setList(rootFolder.guiElements);
-
-        for (int i = 1; i <= levels; i++) {
-            shownFolders.add(new GuiSelectable<>(this, 30, 30 + i * 60, this::onSelectFolderOrFile));
-        }
+        panelFolders.onOpen();
     }
 
-    private static String[] toPath(ResourceLocation loc) {
-        String full = loc.getResourceDomain() + "/" + loc.getResourcePath();
-        return full.split("/");
-    }
-
-    private void onSelectFolderOrFile(GuiSelectable<GuiString> selector, GuiString selected) {
-        if (selected == null) {
+    public void changeOpenFileDlg(ResFile to) {
+        if (openFile == to) {
             return;
         }
-        if (selected.text.endsWith("/")) {
-            // Its a folder
-            int totalWidth = 30;
-            for (GuiSelectable<?> select : shownFolders) {
-                select.x = totalWidth;
-                totalWidth += select.width + 30;
+        if (openFile != null) {
+            for (int i = holders.size() - 1; i > 0; i--) {
+                PanelHolder holder = holders.remove(i);
+                holder.onClose();
             }
-            int index = shownFolders.indexOf(selector);
-            GuiSelectable<GuiString> childGuiElement = shownFolders.get(index + 1);
-            List<GuiString> children = rootFolder.getChildFolder(selected.id);
-            childGuiElement.setList(children);
-            for (int i = index + 2; i < shownFolders.size(); i++) {
-                shownFolders.get(i).setList(null);
-            }
-        } else {
-            // Its a file
+        }
+        openFile = to;
+        if (openFile != null) {
+            GuiPanelFileInfo gpfi = new GuiPanelFileInfo(openFile);
+            holders.add(new PanelHolder(gpfi));
+            gpfi.onOpen();
         }
     }
 
@@ -153,83 +61,115 @@ public class GuiResourcesMain extends GuiScreen {
     }
 
     @Override
-    public void updateScreen() {
-        super.updateScreen();
-        for (GuiSelectable<GuiString> shown : shownFolders) {
-            shown.tick();
-        }
-    }
-
-    @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawBackground(0);
         super.drawScreen(mouseX, mouseY, partialTicks);
 
-        for (GuiSelectable<GuiString> shown : shownFolders) {
-            shown.draw(mouseX, mouseY);
-            if (!shown.isSelected()) {
-                break;
-            }
+        if (totalWidth < width) {
+            scrollX = 0;
+        }
+
+        // TODO: Draw top bar
+
+        int curX = (int) scrollX;
+        GL11.glEnable(GL11.GL_SCISSOR_TEST);
+        for (PanelHolder holder : holders) {
+            int holderWidth = holder.getWidth();
+            holder.drawArea = new Rectangle(curX, 30, holderWidth, this.height - 70);
+            holder.drawScreen(mouseX, mouseY, partialTicks);
+            curX += holderWidth + 30;
+        }
+        GL11.glDisable(GL11.GL_SCISSOR_TEST);
+
+        totalWidth = curX - (int) scrollX;
+
+        if (totalWidth > this.width) {
+            // start cap
+            int left = 10;
+            int top = this.height - 35;
+            int right = left + 5;
+            int bottom = this.height - 10;
+            GuiUtil.drawRect(left, top, right, bottom, GuiUtil.HOVER_COLOUR);
+
+            // line
+            GuiUtil.drawRect(left + 5, this.height - 25, this.width - 15, this.height - 20, GuiUtil.HOVER_COLOUR);
+
+            // end cap
+            GuiUtil.drawRect(this.width - 15, top, this.width - 10, bottom, GuiUtil.HOVER_COLOUR);
+
+            // draggable
+
+            int slidableWidth = this.width - 40;
+            float percent = Math.min(this.width / (float) totalWidth, 1);
+            int w = (int) (slidableWidth * percent);
+            int maxLeft = slidableWidth - w;
+            int maxScroll = totalWidth - this.width;
+            left = 20 + (int) (maxLeft * (-scrollX / maxScroll));
+            GuiUtil.drawRect(left, this.height - 30, left + w, this.height - 15, GuiUtil.SELECTION_COLOUR);
+        }
+    }
+
+    @Override
+    public void updateScreen() {
+        super.updateScreen();
+
+        for (PanelHolder holder : holders) {
+            holder.updateScreen();
         }
     }
 
     @Override
     public void handleMouseInput() throws IOException {
         int mouseX = Mouse.getEventX() * this.width / this.mc.displayWidth;
+        int mouseY = this.height - Mouse.getEventY() * this.height / this.mc.displayHeight - 1;
         super.handleMouseInput();
         float scroll = Mouse.getEventDWheel();
         scroll /= 4.0F;
 
-        for (GuiSelectable<GuiString> shown : shownFolders) {
-            tryScroll(mouseX, scroll, shown);
-            if (!shown.isSelected()) {
-                break;
-            }
+        for (PanelHolder holder : holders) {
+            if (holder.mouseScroll(mouseX, mouseY, scroll)) break;
         }
-    }
 
-    private static void tryScroll(int mouseX, float scroll, GuiSelectable<GuiString> selected) {
-        if (mouseX > selected.x && mouseX <= selected.x + selected.width) {
-            selected.onScroll(scroll);
+        if (mouseY > this.height - 40) {
+            scrollX -= scroll;
+            if (totalWidth > width) {
+                if (scrollX > 0) {
+                    scrollX = 0;
+                }
+                int min = +this.width - totalWidth;
+                if (scrollX < min) {
+                    scrollX = min;
+                }
+            } else {
+                scrollX = 0;
+            }
         }
     }
 
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
         super.mouseClicked(mouseX, mouseY, mouseButton);
-        for (GuiSelectable<GuiString> shown : shownFolders) {
-            tryMouseClick(mouseX, shown);
-            if (!shown.isSelected()) {
-                break;
-            }
-        }
-    }
 
-    private void tryMouseClick(int mouseX, GuiSelectable<GuiString> selected) {
-        if (mouseX > selected.x && mouseX <= selected.x + selected.width) {
-            selected.onClick();
+        for (PanelHolder holder : holders) {
+            if (holder.mouseClicked(mouseX, mouseY, mouseButton)) break;
         }
     }
 
     @Override
     protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
         super.mouseClickMove(mouseX, mouseY, clickedMouseButton, timeSinceLastClick);
+
+        for (PanelHolder holder : holders) {
+            if (holder.mouseClickMove(mouseX, mouseY, clickedMouseButton, timeSinceLastClick)) break;
+        }
     }
 
     @Override
     protected void mouseReleased(int mouseX, int mouseY, int state) {
         super.mouseReleased(mouseX, mouseY, state);
-        for (GuiSelectable<GuiString> shown : shownFolders) {
-            tryMouseRelease(mouseX, shown);
-            if (!shown.isSelected()) {
-                break;
-            }
-        }
-    }
 
-    private void tryMouseRelease(int mouseX, GuiSelectable<GuiString> selected) {
-        if (mouseX > selected.x && mouseX <= selected.x + selected.width) {
-            selected.onRelease();
+        for (PanelHolder holder : holders) {
+            if (holder.mouseReleased(mouseX, mouseY, state)) break;
         }
     }
 }

@@ -8,43 +8,57 @@ import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.security.CodeSource;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-
-import com.google.common.collect.ImmutableList;
 
 import net.minecraft.client.resources.AbstractResourcePack;
 import net.minecraft.client.resources.DefaultResourcePack;
 import net.minecraft.client.resources.IResourcePack;
-import net.minecraft.client.resources.ResourcePackRepository;
+import net.minecraft.client.resources.ResourceIndex;
 import net.minecraft.client.resources.ResourcePackRepository.Entry;
 import net.minecraft.util.ResourceLocation;
 
 public class ResourceProvider {
     private static final Field abstractResourcePack__resourcePackFile;
+    private static final Field defaultResourcePack__resourceIndex;
+    private static final Field resourceIndex__resourceMap;
+
+    private static final String[] STRIP_STARTS = { "FMLFileResourcePack:", "FMLFolderResourcePack:" };
 
     static {
         abstractResourcePack__resourcePackFile = AbstractResourcePack.class.getDeclaredFields()[1];
         abstractResourcePack__resourcePackFile.setAccessible(true);
+
+        defaultResourcePack__resourceIndex = DefaultResourcePack.class.getDeclaredFields()[1];
+        defaultResourcePack__resourceIndex.setAccessible(true);
+
+        resourceIndex__resourceMap = ResourceIndex.class.getDeclaredFields()[1];
+        resourceIndex__resourceMap.setAccessible(true);
     }
 
     public final String name;
-    private final ResourcePackRepository.Entry entry;
-    private final IResourcePack pack;
+    public final IResourcePack pack;
 
     public ResourceProvider(IResourcePack pack) {
-        this.name = pack.getPackName();
-        this.entry = null;
+        this.name = makeName(pack.getPackName());
         this.pack = pack;
     }
 
-    public ResourceProvider(Entry entry) {
-        this.name = entry.getResourcePackName();
-        this.entry = entry;
-        this.pack = entry.getResourcePack();
+    private static String makeName(String name) {
+        if ("Default".equals(name)) {
+            return "Minecraft";
+        }
+        for (String start : STRIP_STARTS) {
+            if (name.startsWith(start)) {
+                return name.substring(start.length());
+            }
+        }
+        return name;
     }
 
     public boolean resourceExists(ResourceLocation location) {
@@ -59,6 +73,7 @@ public class ResourceProvider {
     public List<ResourceLocation> scanAllResourceLocations() {
         System.out.print("Scanning " + name + "\n");
         File file = null;
+        List<ResourceLocation> locations = new ArrayList<>();
         if (pack instanceof AbstractResourcePack) {
             try {
                 file = (File) abstractResourcePack__resourcePackFile.get(pack);
@@ -66,11 +81,25 @@ public class ResourceProvider {
                 throw new Error(e);
             }
         } else if (pack instanceof DefaultResourcePack) {
+            try {
+                ResourceIndex index = (ResourceIndex) defaultResourcePack__resourceIndex.get(pack);
+                Map<String, File> map = (Map<String, File>) resourceIndex__resourceMap.get(index);
+                for (String s : map.keySet()) {
+                    locations.add(new ResourceLocation(s));
+                }
+                Collections.sort(locations, (a, b) -> a.toString().compareTo(b.toString()));
 
+                CodeSource src = DefaultResourcePack.class.getProtectionDomain().getCodeSource();
+                if (src != null) {
+                    file = new File(src.getLocation().getPath().split("!")[0].substring("file:".length()));
+                    System.out.print(file + "\n");
+                }
+            } catch (IllegalAccessException e) {
+                throw new Error(e);
+            }
         }
 
         if (file != null) {
-            List<ResourceLocation> locations = new ArrayList<>();
             if (file.isDirectory()) {
                 try {
                     Files.walkFileTree(file.toPath(), new AddingFileVisitor(locations, file.toPath()));
@@ -84,10 +113,8 @@ public class ResourceProvider {
                     e.printStackTrace();
                 }
             }
-            return locations;
-        } else {
-            return ImmutableList.of();
         }
+        return locations;
     }
 
     private ResourceLocation extractResourceLocation(ZipEntry ze) {

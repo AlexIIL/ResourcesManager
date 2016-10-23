@@ -29,4 +29,9 @@ public class GuiString extends GuiDrawable implements Comparable<GuiString> {
     public int getWidth() {
         return Minecraft.getMinecraft().fontRendererObj.getStringWidth(text);
     }
+
+    @Override
+    public String toString() {
+        return text + "(" + id + ")";
+    }
 }
