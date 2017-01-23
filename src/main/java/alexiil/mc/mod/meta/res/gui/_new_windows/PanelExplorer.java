@@ -26,14 +26,13 @@ public class PanelExplorer extends PanelWindow {
             // close the folder?
         }
         this.folder = folder;
-        title = folder.guiElement.text;
+        title = folder.guiElement.id;
     }
 
     @Override
-    public void drawBackground(float partialTicks) {
-        super.drawBackground(partialTicks);
+    public void draw(float partialTicks) {
+        super.draw(partialTicks);
         GuiUtilRM.drawRect(insideWindow, 0xFF_00_00_00);
-
         FontRenderer font = Minecraft.getMinecraft().fontRendererObj;
         for (ResourceGuiLocation resLoc : getAllGuiResources()) {
             Res res = resLoc.res;
@@ -68,6 +67,9 @@ public class PanelExplorer extends PanelWindow {
                 if (rect.contains(gui.mouse)) {
                     if (res instanceof ResFolder) {
                         setFolder((ResFolder) res);
+                    } else if (res instanceof ResFile) {
+                        ResFile file = (ResFile) res;
+                        gui.openWindows.add(new PanelFileInfo(gui, file));
                     }
                     break;
                 }

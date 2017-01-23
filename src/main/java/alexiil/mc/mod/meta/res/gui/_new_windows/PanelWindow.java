@@ -1,32 +1,49 @@
 package alexiil.mc.mod.meta.res.gui._new_windows;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.util.ResourceLocation;
 
 import alexiil.mc.mod.meta.res.gui.GuiUtilRM;
 
+import buildcraft.lib.client.sprite.ISprite;
+import buildcraft.lib.client.sprite.RawSprite;
+import buildcraft.lib.client.sprite.SpriteNineSliced;
 import buildcraft.lib.gui.GuiRectangle;
 import buildcraft.lib.gui.pos.IGuiArea;
 import buildcraft.lib.gui.pos.MousePosition;
 
 public abstract class PanelWindow implements IGuiArea {
     public static final int DECOR_EDGE = 5;
-    public static final int DECOR_TOP = 12;
+    public static final int DECOR_TOP = 16;
+
+    private static final ResourceLocation RES_BACKGROUND = new ResourceLocation("resourcemanager:textures/gui/background.png");
+    public static final SpriteNineSliced SPRITE_BACKGROUND = new RawSprite(RES_BACKGROUND, 0, 0, 1, 1).slice(12, 12, 64 - 12, 64 - 12, 64);
+
+    private static final ResourceLocation RES_ICONS = new ResourceLocation("resourcemanager:textures/gui/icons.png");
+    public static final RawSprite SPRITE_ICONS = new RawSprite(RES_ICONS, 0, 0, 1, 1);
+    public static final ISprite SPRITE_MINIMIZE_NORMAL = SPRITE_ICONS.subAbsolute(0, 8, 8, 16, 256);
+    public static final ISprite SPRITE_MINIMIZE_HOVERED = SPRITE_ICONS.subAbsolute(0, 16, 8, 24, 256);
+    public static final ISprite SPRITE_MAXIMIZE_NORMAL = SPRITE_ICONS.subAbsolute(8, 8, 16, 16, 256);
+    public static final ISprite SPRITE_MAXIMIZE_HOVERED = SPRITE_ICONS.subAbsolute(8, 16, 16, 24, 256);
+    public static final ISprite SPRITE_CLOSE_NORMAL = SPRITE_ICONS.subAbsolute(16, 8, 24, 16, 256);
+    public static final ISprite SPRITE_CLOSE_HOVERED = SPRITE_ICONS.subAbsolute(16, 16, 24, 24, 256);
 
     public final GuiMultiWindow gui;
     public String title = "Window";
 
     public int x, y;
-    public int width, height;
+    public int width = 200, height = 200;
     public boolean fullscreen = false;
 
-    public final IGuiArea wholeWindow = this;
+    public final IGuiArea wholeWindow;
     public final IGuiArea insideWindow;
 
     private MousePosition windowDragStart = null;
     private EnumWindowChange dragType = null;
 
     enum EnumWindowChange {
-        MOVE(ResizePart.NONE, ResizePart.NONE),
+        MOVE(null, null),
         RESIZE_BOTTOM(ResizePart.NONE, ResizePart.MAX),
         RESIZE_LEFT(ResizePart.MIN, ResizePart.NONE),
         RESIZE_RIGHT(ResizePart.MAX, ResizePart.NONE),
@@ -37,8 +54,8 @@ public abstract class PanelWindow implements IGuiArea {
         public final ResizePart resizeY;
 
         private EnumWindowChange(ResizePart resizeX, ResizePart resizeY) {
-            this.resizeX = resizeX;
-            this.resizeY = resizeY;
+            this.resizeX = resizeX == null ? ResizePart.NONE : resizeX;
+            this.resizeY = resizeY == null ? ResizePart.NONE : resizeY;
         }
 
         public boolean isResize() {
@@ -94,11 +111,17 @@ public abstract class PanelWindow implements IGuiArea {
 
     public PanelWindow(GuiMultiWindow gui) {
         this.gui = gui;
+        wholeWindow = IGuiArea.create(//
+            () -> fullscreen ? -DECOR_EDGE : x,//
+            () -> fullscreen ? 0 : y,//
+            () -> getWidth() + (fullscreen ? DECOR_EDGE * 2 : 0),//
+            () -> getHeight() + (fullscreen ? DECOR_TOP : 0)//
+        );
         insideWindow = IGuiArea.create(//
-            () -> DECOR_EDGE + getX(),//
-            () -> DECOR_TOP + getY(),//
-            () -> getWidth() - DECOR_EDGE * 2,//
-            () -> getHeight() - DECOR_EDGE - DECOR_TOP//
+            () -> wholeWindow.getX() + DECOR_EDGE,//
+            () -> wholeWindow.getY() + DECOR_TOP,//
+            () -> wholeWindow.getWidth() - DECOR_EDGE * 2,//
+            () -> wholeWindow.getHeight() - DECOR_EDGE - DECOR_TOP//
         );
     }
 
@@ -139,10 +162,10 @@ public abstract class PanelWindow implements IGuiArea {
     }
 
     public final void drawEdges() {
-        GuiUtilRM.drawRect(getX(), getY(), getEndX(), getEndY(), 0xFF_CC_CC_CC);
+        SPRITE_BACKGROUND.draw(wholeWindow);
 
         int barX = getEndX() - 45;
-        int barY = getY() + 1;
+        int barY = getY() + 4;
         int iconSize = 10;
         // minimize
         GuiUtilRM.drawRect(barX + 1, barY + 4, barX + 9, barY + 6, 0xFF_33_33_33);
@@ -161,12 +184,11 @@ public abstract class PanelWindow implements IGuiArea {
         GuiUtilRM.drawRect(barX, barY, barX + iconSize, barY + iconSize, 0xFF_33_33_33);
 
         // Title
-        Minecraft.getMinecraft().fontRendererObj.drawString(title, getX() + 5, getY() + 2, 0);
+        FontRenderer font = Minecraft.getMinecraft().fontRendererObj;
+        font.drawString(title, getCenterX() - font.getStringWidth(title) / 2, getY() + 5, 0);
     }
 
-    public void drawBackground(float partialTicks) {}
-
-    public void drawForeground(float partialTicks) {}
+    public void draw(float partialTicks) {}
 
     protected void onMouseClicked(int button) {}
 
@@ -216,16 +238,21 @@ public abstract class PanelWindow implements IGuiArea {
         }
     }
 
+    public final void correctPosition() {
+        if (windowDragStart == null) return;
+        if (dragType == EnumWindowChange.MOVE) {
+            x += gui.mouse.getX() - windowDragStart.getX();
+            y += gui.mouse.getY() - windowDragStart.getY();
+        } else if (dragType.isResize()) {
+            dragType.resizeX.resizeX(this);
+            dragType.resizeY.resizeY(this);
+        }
+        windowDragStart.setMousePosition(gui.mouse.getX(), gui.mouse.getY());
+    }
+
     public final boolean onMouseDragged0(boolean hit, int clickedMouseButton, long timeSinceLastClick) {
         if (windowDragStart != null) {
-            if (dragType == EnumWindowChange.MOVE) {
-                x += gui.mouse.getX() - windowDragStart.getX();
-                y += gui.mouse.getY() - windowDragStart.getY();
-            } else if (dragType.isResize()) {
-                dragType.resizeX.resizeX(this);
-                dragType.resizeY.resizeY(this);
-            }
-            windowDragStart.setMousePosition(gui.mouse.getX(), gui.mouse.getY());
+            correctPosition();
             return true;
         } else if (!hit && insideWindow.contains(gui.mouse)) {
             onMouseDragged(clickedMouseButton, timeSinceLastClick);

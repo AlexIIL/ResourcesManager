@@ -43,7 +43,6 @@ public class GuiMultiWindow extends GuiScreen {
         long start = System.nanoTime();
         mouse.setMousePosition(mouseX, mouseY);
         drawBackgroundLayer(partialTicks);
-        drawForegroundLayer(partialTicks);
         long diff = System.nanoTime() - start;
         double tpf = (diff / 1000) / 1000.0;
         drawString(fontRendererObj, tpf + " ms/f", 0, 0, -1);
@@ -51,32 +50,20 @@ public class GuiMultiWindow extends GuiScreen {
 
     protected void drawBackgroundLayer(float partialTicks) {
         pushScissor(0, 0, width, height - BOTTOM_SIZE);
-        rootPanel.drawBackground(partialTicks);
+        GuiUtilRM.drawRect(rootPanel.wholeWindow, 0xFF_00_00_00);
+        rootPanel.draw(partialTicks);
 
         for (PanelWindow window : openWindows) {
+            window.correctPosition();
             pushScissor(window);
             window.drawEdges();
             popScissor();
             pushScissor(window.insideWindow);
-            window.drawBackground(partialTicks);
+            window.draw(partialTicks);
             popScissor();
         }
         popScissor();
         GuiUtilRM.drawRect(0, height - BOTTOM_SIZE, width, height, -1);
-    }
-
-    protected void drawForegroundLayer(float partialTicks) {
-        pushScissor(0, 0, width, height - BOTTOM_SIZE);
-        rootPanel.drawForeground(partialTicks);
-
-        for (PanelWindow window : openWindows) {
-
-            pushScissor(window.insideWindow);
-            window.drawForeground(partialTicks);
-            popScissor();
-        }
-        popScissor();
-        // TODO: draw window switcher foreground
     }
 
     public void pushScissor(Rectangle area) {
