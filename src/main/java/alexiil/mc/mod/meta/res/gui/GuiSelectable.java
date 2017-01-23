@@ -66,11 +66,11 @@ public class GuiSelectable<S extends GuiDrawable> {
         for (S drawable : possible) {
             int height = drawable.draw(xPos, y);
             if (selected == i) {
-                GuiUtil.drawSelectionBox(x, y - 3, width, height + 6);
+                GuiUtilRM.drawSelectionBox(x, y - 3, width, height + 6);
             }
             if (mouseX > x && mouseX <= x + width && mouseY > y && mouseY < y + height + 6) {
                 mouseOver = i;
-                GuiUtil.drawHoverBox(x, y - 3, width, height + 6);
+                GuiUtilRM.drawHoverBox(x, y - 3, width, height + 6);
             }
             y += height + 6;
             i++;
@@ -80,11 +80,11 @@ public class GuiSelectable<S extends GuiDrawable> {
         // draw scroll bar
         int totalHeight = maxY - (int) scrollPos;
         if (totalHeight > drawHeight) {
-            GuiUtil.drawRect(x + width + 4, 0, x + width + 5, drawHeight, GuiUtil.HOVER_COLOUR);
+            GuiUtilRM.drawRect(x + width + 4, 0, x + width + 5, drawHeight, GuiUtilRM.HOVER_COLOUR);
 
             int actualHeight = (int) (drawHeight * drawHeight / (double) totalHeight);
             int actualPos = (-(int) scrollPos) * drawHeight / (totalHeight);
-            GuiUtil.drawRect(x + width + 2, actualPos, x + width + 7, actualPos + actualHeight, GuiUtil.SELECTION_COLOUR);
+            GuiUtilRM.drawRect(x + width + 2, actualPos, x + width + 7, actualPos + actualHeight, GuiUtilRM.SELECTION_COLOUR);
         }
     }
 

@@ -12,24 +12,25 @@ import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
-import alexiil.mc.mod.meta.res.gui.GuiResourcesMain;
+import alexiil.mc.mod.meta.res.gui._new_windows.GuiResources;
 
-@Mod(modid = ResourcesManager.MODID, version = ResourcesManager.VERSION, clientSideOnly = true)
+@Mod(modid = ResourcesManager.MODID, version = ResourcesManager.VERSION, dependencies = "required-after:buildcraftlib@[8.0.0-alpha,)", clientSideOnly = true)
 public class ResourcesManager {
     public static final String MODID = "resources_manager";
-    public static final String VERSION = "{$version}";
+    public static final String VERSION = "${version}";
+    public static final String MC_VERSION = "${mcversion}";
 
     private static final int BUTTON_ID = 10004;
     private static final int BUTTON_WIDTH = 98;
     private static final int BUTTON_HEIGHT = 20;
 
     @EventHandler
-    public void init(FMLInitializationEvent event) {
-        MinecraftForge.EVENT_BUS.register(this);
+    public static void init(FMLInitializationEvent event) {
+        MinecraftForge.EVENT_BUS.register(ResourcesManager.class);
     }
 
     @SubscribeEvent
-    public void onInitGuiScreen(InitGuiEvent.Post event) {
+    public static void onInitGuiScreen(InitGuiEvent.Post event) {
         if (event.getGui() instanceof GuiMainMenu) {
             GuiMainMenu gui = (GuiMainMenu) event.getGui();
             event.getButtonList().add(ButtonGotoResourcesManager.create(gui));
@@ -44,13 +45,14 @@ public class ResourcesManager {
         }
 
         private ButtonGotoResourcesManager(int x, int y) {
-            super(BUTTON_ID, x, y, BUTTON_WIDTH, BUTTON_HEIGHT, I18n.format("Resources..."));
+            super(BUTTON_ID, x, y, BUTTON_WIDTH, BUTTON_HEIGHT, "Resources...");
         }
 
         @Override
         public boolean mousePressed(Minecraft mc, int mouseX, int mouseY) {
             if (super.mousePressed(mc, mouseX, mouseY)) {
-                mc.displayGuiScreen(new GuiResourcesMain());
+                // mc.displayGuiScreen(new GuiResourcesMain());
+                mc.displayGuiScreen(new GuiResources());
                 return true;
             }
             return false;

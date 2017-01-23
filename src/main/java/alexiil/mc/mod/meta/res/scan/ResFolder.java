@@ -9,7 +9,7 @@ import net.minecraft.util.ResourceLocation;
 
 import alexiil.mc.mod.meta.res.gui.GuiString;
 
-public class ResFolder {
+public class ResFolder extends Res {
     public final ResFolder parent;
     public final GuiString guiElement;
     public final Map<String, ResFolder> folders = new TreeMap<>();
@@ -18,11 +18,13 @@ public class ResFolder {
     public int depth = 0;
 
     public ResFolder() {
+        super("root");
         parent = null;
         guiElement = new GuiString("", "");
     }
 
     public ResFolder(ResFolder parent, String name) {
+        super(name);
         this.parent = parent;
         guiElement = new GuiString(name + "/", parent.guiElement.id + name + "/");
     }
@@ -91,5 +93,20 @@ public class ResFolder {
     private static String[] toPath(ResourceLocation loc) {
         String full = loc.getResourceDomain() + "/" + loc.getResourcePath();
         return full.split("/");
+    }
+
+    @Override
+    public boolean needsExporting() {
+        return false;
+    }
+
+    @Override
+    public boolean hasMissing() {
+        return false;
+    }
+
+    @Override
+    public boolean hasErrors() {
+        return false;
     }
 }

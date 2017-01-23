@@ -89,13 +89,13 @@ public class GuiResourcesMain extends GuiScreen {
             int top = this.height - 35;
             int right = left + 5;
             int bottom = this.height - 10;
-            GuiUtil.drawRect(left, top, right, bottom, GuiUtil.HOVER_COLOUR);
+            GuiUtilRM.drawRect(left, top, right, bottom, GuiUtilRM.HOVER_COLOUR);
 
             // line
-            GuiUtil.drawRect(left + 5, this.height - 25, this.width - 15, this.height - 20, GuiUtil.HOVER_COLOUR);
+            GuiUtilRM.drawRect(left + 5, this.height - 25, this.width - 15, this.height - 20, GuiUtilRM.HOVER_COLOUR);
 
             // end cap
-            GuiUtil.drawRect(this.width - 15, top, this.width - 10, bottom, GuiUtil.HOVER_COLOUR);
+            GuiUtilRM.drawRect(this.width - 15, top, this.width - 10, bottom, GuiUtilRM.HOVER_COLOUR);
 
             // draggable
 
@@ -105,7 +105,7 @@ public class GuiResourcesMain extends GuiScreen {
             int maxLeft = slidableWidth - w;
             int maxScroll = totalWidth - this.width;
             left = 20 + (int) (maxLeft * (-scrollX / maxScroll));
-            GuiUtil.drawRect(left, this.height - 30, left + w, this.height - 15, GuiUtil.SELECTION_COLOUR);
+            GuiUtilRM.drawRect(left, this.height - 30, left + w, this.height - 15, GuiUtilRM.SELECTION_COLOUR);
         }
     }
 

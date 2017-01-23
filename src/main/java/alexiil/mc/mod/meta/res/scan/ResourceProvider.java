@@ -16,11 +16,7 @@ import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import net.minecraft.client.resources.AbstractResourcePack;
-import net.minecraft.client.resources.DefaultResourcePack;
-import net.minecraft.client.resources.IResourcePack;
-import net.minecraft.client.resources.ResourceIndex;
-import net.minecraft.client.resources.ResourcePackRepository.Entry;
+import net.minecraft.client.resources.*;
 import net.minecraft.util.ResourceLocation;
 
 public class ResourceProvider {
@@ -71,6 +67,10 @@ public class ResourceProvider {
     }
 
     public List<ResourceLocation> scanAllResourceLocations() {
+        return scanPack(name, pack);
+    }
+
+    private static List<ResourceLocation> scanPack(String name, IResourcePack pack) {
         System.out.print("Scanning " + name + "\n");
         File file = null;
         List<ResourceLocation> locations = new ArrayList<>();
@@ -92,11 +92,20 @@ public class ResourceProvider {
                 CodeSource src = DefaultResourcePack.class.getProtectionDomain().getCodeSource();
                 if (src != null) {
                     file = new File(src.getLocation().getPath().split("!")[0].substring("file:".length()));
-                    System.out.print(file + "\n");
                 }
             } catch (IllegalAccessException e) {
                 throw new Error(e);
             }
+        } else if (pack instanceof LegacyV2Adapter) {
+            try {
+                Field f = LegacyV2Adapter.class.getDeclaredFields()[0];
+                f.setAccessible(true);
+                return scanPack(name, (IResourcePack) f.get(pack));
+            } catch (IllegalAccessException e) {
+                throw new Error(e);
+            }
+        } else {
+            System.out.print("Unknown IResourcePack " + pack.getClass() + "\n");
         }
 
         if (file != null) {
@@ -108,16 +117,18 @@ public class ResourceProvider {
                 }
             } else if (file.isFile()) {
                 try (ZipFile zf = new ZipFile(file)) {
-                    Collections.addAll(locations, zf.stream().map(this::extractResourceLocation).filter(rl -> rl != null).toArray((l) -> new ResourceLocation[l]));
+                    Collections.addAll(locations, zf.stream().map(ResourceProvider::extractResourceLocation).filter(rl -> rl != null).toArray((l) -> new ResourceLocation[l]));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
+        } else {
+            System.out.print("  Didn't find a file!\n");
         }
         return locations;
     }
 
-    private ResourceLocation extractResourceLocation(ZipEntry ze) {
+    private static ResourceLocation extractResourceLocation(ZipEntry ze) {
         String zeName = ze.getName();
         if (ze.isDirectory()) {
             return null;

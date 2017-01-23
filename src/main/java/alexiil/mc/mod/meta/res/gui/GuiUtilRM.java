@@ -4,11 +4,31 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.VertexBuffer;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.util.ResourceLocation;
 
-public class GuiUtil {
+import buildcraft.lib.client.sprite.ISprite;
+import buildcraft.lib.client.sprite.RawSprite;
+import buildcraft.lib.gui.GuiRectangle;
+import buildcraft.lib.gui.pos.IGuiArea;
+
+public class GuiUtilRM {
+    public static final RawSprite SPRITE_GUI_ICONS = new RawSprite(new ResourceLocation("resourcemanager:textures/gui/icons.png"), 0, 0, 256, 256);
+    public static final ISprite SPRITE_FOLDER_WARNING = SPRITE_GUI_ICONS.subAbsolute(0, 0, 4, 8, 256);
+    public static final ISprite SPRITE_FOLDER_MISSING = SPRITE_GUI_ICONS.subAbsolute(4, 0, 8, 8, 256);
+    // TODO: SPRITE_FOLDER_NOT_EXPORTED
 
     public static final int SELECTION_COLOUR = 0xFF_DD_DD_DD;
     public static final int HOVER_COLOUR = 0xFF_AA_AA_AA;
+
+    /** Draws a solid color rectangle inside the given area and color. */
+    public static void drawRect(IGuiArea area, int color) {
+        drawRect(area.getX(), area.getY(), area.getEndX(), area.getEndY(), color);
+    }
+
+    /** Draws a solid color rectangle inside the given area and color. */
+    public static void drawRect(GuiRectangle rect, int color) {
+        drawRect(rect.x, rect.y, rect.x + rect.width, rect.y + rect.height, color);
+    }
 
     /** Draws a solid color rectangle with the specified coordinates and color. */
     public static void drawRect(int left, int top, int right, int bottom, int color) {
@@ -24,16 +44,16 @@ public class GuiUtil {
             bottom = j;
         }
 
-        float f3 = (color >> 24 & 255) / 255.0F;
-        float f = (color >> 16 & 255) / 255.0F;
-        float f1 = (color >> 8 & 255) / 255.0F;
-        float f2 = (color & 255) / 255.0F;
+        float r = (color >> 16 & 255) / 255.0F;
+        float g = (color >> 8 & 255) / 255.0F;
+        float b = (color & 255) / 255.0F;
+        float a = (color >> 24 & 255) / 255.0F;
         Tessellator tessellator = Tessellator.getInstance();
         VertexBuffer vertexbuffer = tessellator.getBuffer();
         GlStateManager.enableBlend();
         GlStateManager.disableTexture2D();
         GlStateManager.tryBlendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
-        GlStateManager.color(f, f1, f2, f3);
+        GlStateManager.color(r, g, b, a);
         vertexbuffer.begin(7, DefaultVertexFormats.POSITION);
         vertexbuffer.pos(left, bottom, 0.0D).endVertex();
         vertexbuffer.pos(right, bottom, 0.0D).endVertex();

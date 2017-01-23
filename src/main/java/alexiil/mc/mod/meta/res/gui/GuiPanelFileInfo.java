@@ -99,7 +99,7 @@ public class GuiPanelFileInfo extends GuiPanel {
             FontRenderer font = Minecraft.getMinecraft().fontRendererObj;
             font.drawString(text, x + 2, y, 0xFF_BB_BB_BB);
             if (mouseX > x && mouseX < x + strWidth && mouseY > y - 2 && mouseY < y + 12) {
-                GuiUtil.drawHoverBox(x - 1, y - 2, strWidth + 4, 12);
+                GuiUtilRM.drawHoverBox(x - 1, y - 2, strWidth + 4, 12);
             }
             return strWidth + 10;
         }
